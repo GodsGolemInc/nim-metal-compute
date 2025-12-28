@@ -1,6 +1,6 @@
 # Package
 
-version = "0.1.0"
+version = "0.0.10"
 author = "GodsGolemInc"
 description = "Metal Compute Shader bindings for Nim - GPU accelerated neural networks with CPU fallback"
 license = "Apache-2.0"
