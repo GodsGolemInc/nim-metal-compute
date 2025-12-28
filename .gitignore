@@ -1,0 +1,9 @@
+# Compiled binaries
+bin/
+
+# Nim cache
+nimcache/
+nimblecache/
+
+# macOS
+.DS_Store
