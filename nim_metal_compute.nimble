@@ -10,18 +10,6 @@ srcDir = "src"
 
 requires "nim >= 2.0.0"
 
-# Binary outputs
-bin = @["nim_metal_compute/metal_device",
-        "nim_metal_compute/metal_buffer",
-        "nim_metal_compute/metal_command",
-        "nim_metal_compute/metal_compute",
-        "nim_metal_compute/metal_matrix",
-        "nim_metal_compute/metal_nn",
-        "nim_metal_compute/metal_async",
-        "nim_metal_compute/metal_stress",
-        "nim_metal_compute/metal_optimize",
-        "nim_metal_compute/metal_api"]
-
 # Tasks
 
 task test, "Run all tests":
