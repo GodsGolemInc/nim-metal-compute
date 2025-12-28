@@ -96,9 +96,45 @@ proc newBuffer*(device: MetalDevice, length: int,
     result = err[MetalBuffer](newError(ekMetalNotAvailable,
       "Metal is only available on macOS"))
 
+proc newBuffer*[T](device: MetalDevice, data: openArray[T],
+                   mode: MTLStorageMode = smShared): NMCResult[MetalBuffer] =
+  ## Create a new buffer initialized with data (convenience overload)
+  ## Alias for newBufferWithData
+  when defined(macosx):
+    if not device.valid or device.handle.pointer == nil:
+      return err[MetalBuffer](newError(ekDeviceNotFound,
+        "Invalid Metal device"))
+
+    if data.len == 0:
+      return err[MetalBuffer](newError(ekInvalidInputSize,
+        "Cannot create buffer from empty data"))
+
+    let length = data.len * sizeof(T)
+    let options = resourceOptionsFromStorageMode(mode)
+    let handle = nmc_create_buffer_with_data(device.handle.pointer,
+                                               unsafeAddr data[0],
+                                               length.uint64, options)
+
+    if handle == nil:
+      return err[MetalBuffer](newError(ekBufferAllocationError,
+        "Failed to allocate Metal buffer with data",
+        fmt"Could not allocate {length} bytes"))
+
+    result = ok(MetalBuffer(
+      handle: MTLBufferRef(handle),
+      device: device,
+      length: length,
+      storageMode: mode,
+      valid: true
+    ))
+  else:
+    result = err[MetalBuffer](newError(ekMetalNotAvailable,
+      "Metal is only available on macOS"))
+
 proc newBufferWithData*[T](device: MetalDevice, data: openArray[T],
                            mode: MTLStorageMode = smShared): NMCResult[MetalBuffer] =
   ## Create a new buffer initialized with data
+  ## (Deprecated: use newBuffer instead)
   when defined(macosx):
     if not device.valid or device.handle.pointer == nil:
       return err[MetalBuffer](newError(ekDeviceNotFound,

@@ -322,6 +322,168 @@ void nmc_release_encoder(void* encoder) {
     }
 }
 
+// ========== Shader and Pipeline Functions ==========
+
+/// Compile Metal shader source code into a library
+/// Returns the library handle or NULL on failure
+/// errorOut will contain error message if compilation fails (caller must free)
+void* nmc_compile_library(void* device, const char* source, char** errorOut) {
+    if (device == NULL || source == NULL) {
+        if (errorOut) *errorOut = strdup("Invalid device or source");
+        return NULL;
+    }
+
+    id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)device;
+    NSString* sourceStr = [NSString stringWithUTF8String:source];
+    NSError* error = nil;
+
+    MTLCompileOptions* options = [[MTLCompileOptions alloc] init];
+    options.fastMathEnabled = YES;
+
+    id<MTLLibrary> library = [mtlDevice newLibraryWithSource:sourceStr
+                                                     options:options
+                                                       error:&error];
+
+    if (error != nil || library == nil) {
+        if (errorOut) {
+            NSString* errorDesc = error ? [error localizedDescription] : @"Unknown compilation error";
+            *errorOut = strdup([errorDesc UTF8String]);
+        }
+        return NULL;
+    }
+
+    return (__bridge_retained void*)library;
+}
+
+/// Load a precompiled Metal library from a file path
+void* nmc_load_library(void* device, const char* path, char** errorOut) {
+    if (device == NULL || path == NULL) {
+        if (errorOut) *errorOut = strdup("Invalid device or path");
+        return NULL;
+    }
+
+    id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)device;
+    NSString* pathStr = [NSString stringWithUTF8String:path];
+    NSURL* url = [NSURL fileURLWithPath:pathStr];
+    NSError* error = nil;
+
+    id<MTLLibrary> library = [mtlDevice newLibraryWithURL:url error:&error];
+
+    if (error != nil || library == nil) {
+        if (errorOut) {
+            NSString* errorDesc = error ? [error localizedDescription] : @"Failed to load library";
+            *errorOut = strdup([errorDesc UTF8String]);
+        }
+        return NULL;
+    }
+
+    return (__bridge_retained void*)library;
+}
+
+/// Get the default library (compiled into the app bundle)
+void* nmc_get_default_library(void* device) {
+    if (device == NULL) return NULL;
+    id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)device;
+    id<MTLLibrary> library = [mtlDevice newDefaultLibrary];
+    if (library == nil) return NULL;
+    return (__bridge_retained void*)library;
+}
+
+/// Get a function from a library by name
+void* nmc_get_function(void* library, const char* name) {
+    if (library == NULL || name == NULL) return NULL;
+
+    id<MTLLibrary> mtlLibrary = (__bridge id<MTLLibrary>)library;
+    NSString* nameStr = [NSString stringWithUTF8String:name];
+    id<MTLFunction> function = [mtlLibrary newFunctionWithName:nameStr];
+
+    if (function == nil) return NULL;
+    return (__bridge_retained void*)function;
+}
+
+/// Get function names from a library (returns newline-separated string, caller must free)
+char* nmc_get_function_names(void* library) {
+    if (library == NULL) return NULL;
+
+    id<MTLLibrary> mtlLibrary = (__bridge id<MTLLibrary>)library;
+    NSArray<NSString*>* names = [mtlLibrary functionNames];
+
+    if (names == nil || names.count == 0) return strdup("");
+
+    NSString* joined = [names componentsJoinedByString:@"\n"];
+    return strdup([joined UTF8String]);
+}
+
+/// Create a compute pipeline state from a function
+void* nmc_create_pipeline_state(void* device, void* function, char** errorOut) {
+    if (device == NULL || function == NULL) {
+        if (errorOut) *errorOut = strdup("Invalid device or function");
+        return NULL;
+    }
+
+    id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)device;
+    id<MTLFunction> mtlFunction = (__bridge id<MTLFunction>)function;
+    NSError* error = nil;
+
+    id<MTLComputePipelineState> pipeline = [mtlDevice newComputePipelineStateWithFunction:mtlFunction
+                                                                                    error:&error];
+
+    if (error != nil || pipeline == nil) {
+        if (errorOut) {
+            NSString* errorDesc = error ? [error localizedDescription] : @"Failed to create pipeline";
+            *errorOut = strdup([errorDesc UTF8String]);
+        }
+        return NULL;
+    }
+
+    return (__bridge_retained void*)pipeline;
+}
+
+/// Get max total threads per threadgroup for a pipeline
+uint64_t nmc_pipeline_max_threads_per_threadgroup(void* pipeline) {
+    if (pipeline == NULL) return 0;
+    id<MTLComputePipelineState> mtlPipeline = (__bridge id<MTLComputePipelineState>)pipeline;
+    return (uint64_t)mtlPipeline.maxTotalThreadsPerThreadgroup;
+}
+
+/// Get thread execution width for a pipeline
+uint64_t nmc_pipeline_thread_execution_width(void* pipeline) {
+    if (pipeline == NULL) return 0;
+    id<MTLComputePipelineState> mtlPipeline = (__bridge id<MTLComputePipelineState>)pipeline;
+    return (uint64_t)mtlPipeline.threadExecutionWidth;
+}
+
+/// Get static threadgroup memory length for a pipeline
+uint64_t nmc_pipeline_static_threadgroup_memory_length(void* pipeline) {
+    if (pipeline == NULL) return 0;
+    id<MTLComputePipelineState> mtlPipeline = (__bridge id<MTLComputePipelineState>)pipeline;
+    return (uint64_t)mtlPipeline.staticThreadgroupMemoryLength;
+}
+
+/// Release a library
+void nmc_release_library(void* library) {
+    if (library != NULL) {
+        id<MTLLibrary> mtlLibrary = (__bridge_transfer id<MTLLibrary>)library;
+        (void)mtlLibrary;
+    }
+}
+
+/// Release a function
+void nmc_release_function(void* function) {
+    if (function != NULL) {
+        id<MTLFunction> mtlFunction = (__bridge_transfer id<MTLFunction>)function;
+        (void)mtlFunction;
+    }
+}
+
+/// Release a pipeline state
+void nmc_release_pipeline_state(void* pipeline) {
+    if (pipeline != NULL) {
+        id<MTLComputePipelineState> mtlPipeline = (__bridge_transfer id<MTLComputePipelineState>)pipeline;
+        (void)mtlPipeline;
+    }
+}
+
 // ========== Utility Functions ==========
 
 /// Free a C string allocated by this wrapper

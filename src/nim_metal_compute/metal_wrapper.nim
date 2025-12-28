@@ -128,6 +128,44 @@ when defined(macosx):
   proc nmc_release_encoder*(encoder: pointer)
     {.importc, cdecl.}
 
+  # ========== Shader and Pipeline Functions ==========
+
+  proc nmc_compile_library*(device: pointer, source: cstring, errorOut: ptr cstring): pointer
+    {.importc, cdecl.}
+
+  proc nmc_load_library*(device: pointer, path: cstring, errorOut: ptr cstring): pointer
+    {.importc, cdecl.}
+
+  proc nmc_get_default_library*(device: pointer): pointer
+    {.importc, cdecl.}
+
+  proc nmc_get_function*(library: pointer, name: cstring): pointer
+    {.importc, cdecl.}
+
+  proc nmc_get_function_names*(library: pointer): cstring
+    {.importc, cdecl.}
+
+  proc nmc_create_pipeline_state*(device: pointer, function: pointer, errorOut: ptr cstring): pointer
+    {.importc, cdecl.}
+
+  proc nmc_pipeline_max_threads_per_threadgroup*(pipeline: pointer): uint64
+    {.importc, cdecl.}
+
+  proc nmc_pipeline_thread_execution_width*(pipeline: pointer): uint64
+    {.importc, cdecl.}
+
+  proc nmc_pipeline_static_threadgroup_memory_length*(pipeline: pointer): uint64
+    {.importc, cdecl.}
+
+  proc nmc_release_library*(library: pointer)
+    {.importc, cdecl.}
+
+  proc nmc_release_function*(function: pointer)
+    {.importc, cdecl.}
+
+  proc nmc_release_pipeline_state*(pipeline: pointer)
+    {.importc, cdecl.}
+
   # ========== Utility Functions ==========
 
   proc nmc_free_string*(str: cstring)
@@ -177,4 +215,16 @@ else:
                                       groupW, groupH, groupD: uint64) = discard
   proc nmc_encoder_end_encoding*(encoder: pointer) = discard
   proc nmc_release_encoder*(encoder: pointer) = discard
+  proc nmc_compile_library*(device: pointer, source: cstring, errorOut: ptr cstring): pointer = nil
+  proc nmc_load_library*(device: pointer, path: cstring, errorOut: ptr cstring): pointer = nil
+  proc nmc_get_default_library*(device: pointer): pointer = nil
+  proc nmc_get_function*(library: pointer, name: cstring): pointer = nil
+  proc nmc_get_function_names*(library: pointer): cstring = nil
+  proc nmc_create_pipeline_state*(device: pointer, function: pointer, errorOut: ptr cstring): pointer = nil
+  proc nmc_pipeline_max_threads_per_threadgroup*(pipeline: pointer): uint64 = 0
+  proc nmc_pipeline_thread_execution_width*(pipeline: pointer): uint64 = 0
+  proc nmc_pipeline_static_threadgroup_memory_length*(pipeline: pointer): uint64 = 0
+  proc nmc_release_library*(library: pointer) = discard
+  proc nmc_release_function*(function: pointer) = discard
+  proc nmc_release_pipeline_state*(pipeline: pointer) = discard
   proc nmc_free_string*(str: cstring) = discard

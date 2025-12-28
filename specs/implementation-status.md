@@ -1,6 +1,6 @@
 # Implementation Status
 
-Current Version: **0.0.4**
+Current Version: **0.0.5**
 
 ## Core Components
 
@@ -96,14 +96,19 @@ Objective-C wrapper (metal_wrapper.m) that provides C-callable functions.
 | GPU family detection | ✅ | ✅ | ✅ |
 | Thread configuration | ✅ | ✅ | ✅ |
 
-### v0.0.5 - Shader Execution
+### v0.0.5 - Shader Compilation and GPU Compute ✅ Complete
 
-| Feature | Status |
-|---------|--------|
-| Compute dispatch | 🔲 Planned |
-| Buffer binding | 🔲 Planned |
-| Generated shader execution | 🔲 Planned |
-| GPU inference | 🔲 Planned |
+| Feature | Status | Tests | Docs |
+|---------|--------|-------|------|
+| MTLLibrary compilation | ✅ | ✅ | ✅ |
+| MTLFunction extraction | ✅ | ✅ | ✅ |
+| MTLComputePipelineState | ✅ | ✅ | ✅ |
+| Compute dispatch | ✅ | ✅ | ✅ |
+| Buffer binding | ✅ | ✅ | ✅ |
+| Vector addition shader | ✅ | ✅ | ✅ |
+| Vector multiply shader | ✅ | ✅ | ✅ |
+| GPU compute example | ✅ | ✅ | ✅ |
+| Result verification | ✅ | ✅ | ✅ |
 
 ### v0.0.6 - Buffer Optimization
 

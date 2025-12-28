@@ -36,6 +36,14 @@ type
     ekBufferAllocationError = "Buffer allocation failed"
     ekPipelineError = "Pipeline creation failed"
     ekDeviceNotFound = "Metal device not found"
+    # Metal errors (v0.0.5+)
+    ekDevice = "Device error"
+    ekBuffer = "Buffer error"
+    ekShader = "Shader error"
+    ekPipeline = "Pipeline error"
+    ekCommand = "Command error"
+    ekEncoder = "Encoder error"
+    ekPlatform = "Platform not supported"
 
   NMCError* = object
     ## 構造化エラー
