@@ -1,6 +1,6 @@
 # Implementation Status
 
-Current Version: **0.0.9**
+Current Version: **0.1.0**
 
 ## Core Components
 
@@ -49,10 +49,25 @@ Current Version: **0.0.9**
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Test count | - | 90+ |
-| Test pass rate | 100% | ✅ 100% |
+| Module count | - | 13 |
+| Test pass rate | 100% | ✅ 100% (13/13 modules) |
 | Documentation coverage | 100% | ✅ 100% |
 | Module coverage | 100% | ✅ 100% |
+
+### Tested Modules (v0.1.0)
+1. metal_device ✅
+2. metal_buffer ✅
+3. metal_command ✅
+4. metal_capabilities ✅
+5. metal_shader ✅
+6. metal_compute ✅
+7. metal_pool ✅
+8. metal_matrix ✅
+9. metal_nn ✅
+10. metal_async ✅
+11. metal_stress ✅
+12. metal_optimize ✅
+13. metal_api ✅
 
 ### Error Handling (v0.0.2) ✅ Complete
 
@@ -188,14 +203,30 @@ Features:
 - Memory alignment and coalescing utilities
 - Full stress test suite with pass/fail reporting
 
-### v0.1.0 - Production Ready
+### v0.1.0 - Production Ready ✅ Complete
 
-| Feature | Status |
-|---------|--------|
-| API freeze | 🔲 Planned |
-| GPU→CPU fallback | 🔲 Planned |
-| Production logging | 🔲 Planned |
-| Nimble package | 🔲 Planned |
+| Feature | Status | Tests | Docs |
+|---------|--------|-------|------|
+| Unified API (metal_api.nim) | ✅ | ✅ | ✅ |
+| GPU→CPU fallback | ✅ | ✅ | ✅ |
+| Production logging | ✅ | ✅ | ✅ |
+| Nimble package | ✅ | ✅ | ✅ |
+| ComputeContext management | ✅ | ✅ | ✅ |
+| Operation statistics | ✅ | ✅ | ✅ |
+
+Features:
+- Unified ComputeContext for GPU/CPU operations
+- Automatic fallback from GPU to CPU when Metal unavailable
+- Production-ready logging integration with std/logging
+- Complete nimble package configuration with all tasks
+- Per-operation timing and statistics tracking
+- Backend-aware ComputeResult type
+
+API Highlights:
+- `newComputeContext(backend, logger)`: Create compute context
+- `vectorAdd/vectorMul`: Vector operations with fallback
+- `matmul/transpose`: Matrix operations with fallback
+- `ctx.stats()`: Get operation statistics
 
 ## Out of Scope
 
