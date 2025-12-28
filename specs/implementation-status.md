@@ -1,6 +1,6 @@
 # Implementation Status
 
-Current Version: **0.0.5**
+Current Version: **0.0.6**
 
 ## Core Components
 
@@ -110,13 +110,22 @@ Objective-C wrapper (metal_wrapper.m) that provides C-callable functions.
 | GPU compute example | ✅ | ✅ | ✅ |
 | Result verification | ✅ | ✅ | ✅ |
 
-### v0.0.6 - Buffer Optimization
+### v0.0.6 - Buffer Optimization and Matrix Operations ✅ Complete
 
-| Feature | Status |
-|---------|--------|
-| Buffer pooling | 🔲 Planned |
-| Memory alignment | 🔲 Planned |
-| Zero-copy optimization | 🔲 Planned |
+| Feature | Status | Tests | Docs |
+|---------|--------|-------|------|
+| Buffer pooling | ✅ | ✅ | ✅ |
+| Size-based bucketing | ✅ | ✅ | ✅ |
+| Matrix multiplication (GPU) | ✅ | ✅ | ✅ |
+| Matrix transpose (GPU) | ✅ | ✅ | ✅ |
+| CPU reference implementations | ✅ | ✅ | ✅ |
+| Performance benchmarks | ✅ | ✅ | ✅ |
+
+Performance Results (Apple M2):
+- 64x64 matmul: 4.8x speedup
+- 128x128 matmul: 140x speedup
+- 256x256 matmul: 473x speedup
+- 512x512 matmul: 1398x speedup
 
 ### v0.0.7 - Async Execution
 

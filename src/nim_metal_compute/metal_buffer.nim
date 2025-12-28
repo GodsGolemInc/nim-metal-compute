@@ -49,6 +49,10 @@ const
 proc `or`(a, b: MTLResourceOptions): MTLResourceOptions =
   MTLResourceOptions(uint32(a) or uint32(b))
 
+proc `==`*(a, b: MetalBuffer): bool =
+  ## Compare two buffers by handle
+  a.handle.pointer == b.handle.pointer
+
 proc resourceOptionsFromStorageMode(mode: MTLStorageMode): uint32 =
   case mode
   of smShared: uint32(MTLResourceStorageModeShared)
