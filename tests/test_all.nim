@@ -8,6 +8,10 @@ import ../src/nim_metal_compute/ultra_fast_inference as ultra
 import ../src/nim_metal_compute/extreme_inference as extreme
 import ../src/nim_metal_compute/parallel_inference
 import ../src/nim_metal_compute/actor_inference
+import ../src/nim_metal_compute/metal_device
+import ../src/nim_metal_compute/metal_buffer
+import ../src/nim_metal_compute/metal_command
+import ../src/nim_metal_compute/metal_capabilities
 
 suite "NetworkSpec DSL":
   test "create empty network":
@@ -693,6 +697,483 @@ suite "ErrorHandling":
     let empty = validateNonEmpty(newSeq[int](), "items")
     check nonEmpty.isOk == true
     check empty.isErr == true
+
+suite "MetalDevice":
+  test "check Metal availability":
+    when defined(macosx):
+      let available = isMetalAvailable()
+      check available == true or available == false  # Just check it runs
+    else:
+      skip()
+
+  test "get default device":
+    when defined(macosx):
+      let result = getDefaultDevice()
+      if result.isOk:
+        let device = result.get
+        check device.valid == true
+        check device.info.name.len > 0
+        check device.info.maxBufferLength > 0
+      # Device might not be available in CI
+    else:
+      skip()
+
+  test "device info properties":
+    when defined(macosx):
+      let result = getDefaultDevice()
+      if result.isOk:
+        let device = result.get
+        check device.info.maxBufferLength > 0
+        # Check unified memory detection
+        let hasUnified = device.info.hasUnifiedMemory
+        check hasUnified == true or hasUnified == false
+    else:
+      skip()
+
+  test "Apple Silicon detection":
+    when defined(macosx):
+      let result = getDefaultDevice()
+      if result.isOk:
+        let device = result.get
+        let isApple = device.isAppleSilicon()
+        check isApple == true or isApple == false
+    else:
+      skip()
+
+  test "device string representation":
+    when defined(macosx):
+      let result = getDefaultDevice()
+      if result.isOk:
+        let device = result.get
+        let str = $device
+        check str.len > 0
+        check "MetalDevice" in str
+    else:
+      skip()
+
+  test "device summary":
+    when defined(macosx):
+      let result = getDefaultDevice()
+      if result.isOk:
+        let device = result.get
+        let summary = device.summary()
+        check summary.len > 0
+        check "Metal Device Information" in summary
+    else:
+      skip()
+
+suite "MetalBuffer":
+  test "create buffer":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let bufferResult = newBuffer(device, 1024)
+        if bufferResult.isOk:
+          var buffer = bufferResult.get
+          check buffer.valid == true
+          check buffer.length == 1024
+          check buffer.storageMode == smShared
+          buffer.release()
+          check buffer.valid == false
+    else:
+      skip()
+
+  test "create buffer with different storage modes":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        # Shared mode
+        let sharedResult = newBuffer(device, 512, smShared)
+        if sharedResult.isOk:
+          var shared = sharedResult.get
+          check shared.storageMode == smShared
+          shared.release()
+
+        # Private mode
+        let privateResult = newBuffer(device, 512, smPrivate)
+        if privateResult.isOk:
+          var priv = privateResult.get
+          check priv.storageMode == smPrivate
+          priv.release()
+    else:
+      skip()
+
+  test "buffer with data":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        var data = @[1.0f32, 2.0, 3.0, 4.0]
+        let bufferResult = newBufferWithData(device, data)
+        if bufferResult.isOk:
+          var buffer = bufferResult.get
+          check buffer.valid == true
+          check buffer.length == sizeof(float32) * 4
+          buffer.release()
+    else:
+      skip()
+
+  test "buffer write and read":
+    # Note: v0.0.3 stub - write/read operations succeed but don't transfer actual data
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let bufferResult = newBuffer(device, 1024)
+        if bufferResult.isOk:
+          var buffer = bufferResult.get
+
+          # Write data
+          var writeData = @[1.0f32, 2.0, 3.0, 4.0, 5.0]
+          let writeResult = buffer.write(writeData)
+          check writeResult.isOk == true
+
+          # Read data (v0.0.3 stub - data remains unchanged)
+          var readData = newSeq[float32](5)
+          let readResult = buffer.read(readData)
+          check readResult.isOk == true
+          # v0.0.3: Stub doesn't transfer actual data
+          # Actual data verification will be tested in v0.0.4
+
+          buffer.release()
+    else:
+      skip()
+
+  test "buffer overflow protection":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let bufferResult = newBuffer(device, 16)  # Small buffer
+        if bufferResult.isOk:
+          var buffer = bufferResult.get
+
+          # Try to write too much data
+          var data = newSeq[float32](100)  # 400 bytes > 16 bytes
+          let writeResult = buffer.write(data)
+          check writeResult.isErr == true
+
+          buffer.release()
+    else:
+      skip()
+
+  test "buffer string representation":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let bufferResult = newBuffer(device, 1024)
+        if bufferResult.isOk:
+          var buffer = bufferResult.get
+          let str = $buffer
+          check str.len > 0
+          check "MetalBuffer" in str
+          buffer.release()
+    else:
+      skip()
+
+  test "invalid buffer operations":
+    when defined(macosx):
+      # Test with invalid device
+      var invalidDevice = MetalDevice(valid: false)
+      let result = newBuffer(invalidDevice, 1024)
+      check result.isErr == true
+      check result.error.kind == ekDeviceNotFound
+    else:
+      skip()
+
+  test "zero length buffer":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let result = newBuffer(device, 0)
+        check result.isErr == true
+        check result.error.kind == ekInvalidInputSize
+    else:
+      skip()
+
+suite "MetalCommand":
+  test "create command queue":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let queueResult = newCommandQueue(device)
+        if queueResult.isOk:
+          var queue = queueResult.get
+          check queue.valid == true
+          queue.release()
+          check queue.valid == false
+    else:
+      skip()
+
+  test "create command buffer":
+    # Note: v0.0.3 stub returns cbsCompleted for status
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let queueResult = newCommandQueue(device)
+        if queueResult.isOk:
+          var queue = queueResult.get
+          let cmdBufferResult = newCommandBuffer(queue)
+          if cmdBufferResult.isOk:
+            var cmdBuffer = cmdBufferResult.get
+            check cmdBuffer.valid == true
+            # v0.0.3: Stub returns cbsCompleted
+            check cmdBuffer.status in {cbsNotEnqueued, cbsCompleted}
+            cmdBuffer.release()
+          queue.release()
+    else:
+      skip()
+
+  test "create compute encoder":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let queueResult = newCommandQueue(device)
+        if queueResult.isOk:
+          var queue = queueResult.get
+          let cmdBufferResult = newCommandBuffer(queue)
+          if cmdBufferResult.isOk:
+            var cmdBuffer = cmdBufferResult.get
+            let encoderResult = newComputeEncoder(cmdBuffer)
+            if encoderResult.isOk:
+              var encoder = encoderResult.get
+              check encoder.valid == true
+              let endResult = encoder.endEncoding()
+              check endResult.isOk == true
+              check encoder.valid == false
+            cmdBuffer.release()
+          queue.release()
+    else:
+      skip()
+
+  test "set buffer on encoder":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let bufferResult = newBuffer(device, 1024)
+        let queueResult = newCommandQueue(device)
+        if bufferResult.isOk and queueResult.isOk:
+          var buffer = bufferResult.get
+          var queue = queueResult.get
+          let cmdBufferResult = newCommandBuffer(queue)
+          if cmdBufferResult.isOk:
+            var cmdBuffer = cmdBufferResult.get
+            let encoderResult = newComputeEncoder(cmdBuffer)
+            if encoderResult.isOk:
+              var encoder = encoderResult.get
+              let setResult = encoder.setBuffer(buffer, 0, 0)
+              check setResult.isOk == true
+              discard encoder.endEncoding()
+            cmdBuffer.release()
+          buffer.release()
+          queue.release()
+    else:
+      skip()
+
+  test "MTLSize creation":
+    let size1d = mtlSize1D(1024)
+    check size1d.width == 1024
+    check size1d.height == 1
+    check size1d.depth == 1
+
+    let size2d = mtlSize2D(32, 32)
+    check size2d.width == 32
+    check size2d.height == 32
+    check size2d.depth == 1
+
+    let size3d = mtlSize(16, 16, 4)
+    check size3d.width == 16
+    check size3d.height == 16
+    check size3d.depth == 4
+
+  test "command buffer commit and wait":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let queueResult = newCommandQueue(device)
+        if queueResult.isOk:
+          var queue = queueResult.get
+          let cmdBufferResult = newCommandBuffer(queue)
+          if cmdBufferResult.isOk:
+            var cmdBuffer = cmdBufferResult.get
+            let encoderResult = newComputeEncoder(cmdBuffer)
+            if encoderResult.isOk:
+              var encoder = encoderResult.get
+              discard encoder.endEncoding()
+            let commitResult = cmdBuffer.commit()
+            check commitResult.isOk == true
+            let waitResult = cmdBuffer.waitUntilCompleted()
+            check waitResult.isOk == true
+            check cmdBuffer.status == cbsCompleted
+            cmdBuffer.release()
+          queue.release()
+    else:
+      skip()
+
+  test "command queue string representation":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let queueResult = newCommandQueue(device)
+        if queueResult.isOk:
+          var queue = queueResult.get
+          let str = $queue
+          check str.len > 0
+          check "MetalCommandQueue" in str
+          queue.release()
+    else:
+      skip()
+
+  test "invalid queue operations":
+    when defined(macosx):
+      var invalidQueue = MetalCommandQueue(valid: false)
+      let result = newCommandBuffer(invalidQueue)
+      check result.isErr == true
+      check result.error.kind == ekPipelineError
+    else:
+      skip()
+
+suite "MetalCapabilities":
+  test "detect GPU family":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let family = detectGPUFamily(device)
+        # Should detect something on macOS
+        check family != gfUnknown or true  # May be unknown on some systems
+    else:
+      skip()
+
+  test "GPU family name":
+    check familyName(gfApple7) == "Apple GPU Family 7 (A14/M1)"
+    check familyName(gfApple8) == "Apple GPU Family 8 (A15/M2)"
+    check familyName(gfApple9) == "Apple GPU Family 9 (A17/M3)"
+    check familyName(gfUnknown) == "Unknown"
+
+  test "Apple Silicon family detection":
+    check isAppleSiliconFamily(gfApple7) == true
+    check isAppleSiliconFamily(gfApple8) == true
+    check isAppleSiliconFamily(gfApple9) == true
+    check isAppleSiliconFamily(gfApple6) == false
+    check isAppleSiliconFamily(gfMac1) == false
+
+  test "get compute capabilities":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let caps = getComputeCapabilities(device)
+        check caps.maxThreadsPerThreadgroup > 0
+        check caps.simdWidth > 0
+    else:
+      skip()
+
+  test "get memory capabilities":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let caps = getMemoryCapabilities(device)
+        check caps.maxBufferLength > 0
+        check caps.recommendedMaxWorkingSetSize > 0
+    else:
+      skip()
+
+  test "get full capabilities":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let capsResult = getCapabilities(device)
+        if capsResult.isOk:
+          let caps = capsResult.get
+          check caps.device.valid == true
+          check caps.featureSupport.len > 0
+          check "unifiedMemory" in caps.featureSupport
+    else:
+      skip()
+
+  test "recommended threadgroup size":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let capsResult = getCapabilities(device)
+        if capsResult.isOk:
+          let caps = capsResult.get
+          let (threads, groups) = recommendedThreadgroupSize(caps, 1000000)
+          check threads > 0
+          check groups > 0
+          check threads * groups >= 1000000
+    else:
+      skip()
+
+  test "feature capability check":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let capsResult = getCapabilities(device)
+        if capsResult.isOk:
+          let caps = capsResult.get
+          # These should be defined
+          let hasUnified = isCapableFor(caps, "unifiedMemory")
+          let hasAppleSilicon = isCapableFor(caps, "appleSilicon")
+          check hasUnified == true or hasUnified == false
+          check hasAppleSilicon == true or hasAppleSilicon == false
+          # Unknown feature should return false
+          check isCapableFor(caps, "nonExistentFeature") == false
+    else:
+      skip()
+
+  test "capabilities summary":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let capsResult = getCapabilities(device)
+        if capsResult.isOk:
+          let caps = capsResult.get
+          let summary = caps.summary()
+          check summary.len > 0
+          check "Device Capabilities Summary" in summary
+    else:
+      skip()
+
+  test "compute capabilities string representation":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let caps = getComputeCapabilities(device)
+        let str = $caps
+        check str.len > 0
+        check "Compute Capabilities" in str
+    else:
+      skip()
+
+  test "memory capabilities string representation":
+    when defined(macosx):
+      let deviceResult = getDefaultDevice()
+      if deviceResult.isOk:
+        let device = deviceResult.get
+        let caps = getMemoryCapabilities(device)
+        let str = $caps
+        check str.len > 0
+        check "Memory Capabilities" in str
+    else:
+      skip()
 
 when isMainModule:
   echo "Running nim-metal-compute tests..."

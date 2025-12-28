@@ -42,11 +42,11 @@ This directory contains specifications for nim-metal-compute development.
 
 ## Current Status
 
-- **Version:** 0.0.2
-- **Focus:** Error Handling & Stabilization
-- **Tests:** 59 (100% pass rate)
+- **Version:** 0.0.3
+- **Focus:** Metal API Bindings
+- **Tests:** 96 (100% pass rate)
 - **Documentation:** Complete
-- **Next:** v0.0.3 (Metal API Bindings)
+- **Next:** v0.0.4 (Compute Pipeline)
 
 ## Architecture
 

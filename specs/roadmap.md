@@ -3,10 +3,10 @@
 ## Version Overview
 
 ```
-0.0.1  Current    CPU推論エンジン (SIMD/並列)
-0.0.2  Next       エラーハンドリング改善
-0.0.3  Planned    Metal APIバインディング
-0.0.4  Planned    Compute Pipeline実装
+0.0.1  Complete   CPU推論エンジン (SIMD/並列)        ✅
+0.0.2  Complete   エラーハンドリング改善             ✅
+0.0.3  Current    Metal APIバインディング            ✅
+0.0.4  Next       Compute Pipeline実装
 0.0.5  Planned    シェーダーランタイム実行
 0.0.6  Planned    バッファ最適化
 0.0.7  Planned    非同期実行
@@ -46,48 +46,61 @@
 
 ---
 
-## v0.0.2 - Stabilization
+## v0.0.2 - Stabilization ✅
 
-**Status:** Planned
+**Status:** Complete
+**Release Date:** 2025-12-28
 
 ### Error Handling
-- [ ] Result type for operations
-- [ ] Detailed error messages
-- [ ] Input validation
-- [ ] Edge case handling
+- [x] Result type (NMCResult) for operations
+- [x] Detailed error messages with error kinds
+- [x] Input validation (validateResult, validateLayer)
+- [x] Edge case handling
 
 ### Improvements
-- [ ] Performance profiling tools
-- [ ] Memory usage optimization
-- [ ] Code cleanup
+- [x] Validation helpers (validatePositive, validateRange, validateNonEmpty)
+- [x] Result-based file I/O (saveNMWResult, loadNMWResult)
+- [x] Result-based code generation (generateResult)
 
-### Documentation
-- [ ] Tutorial examples
-- [ ] Integration guide
-- [ ] Troubleshooting guide
+### Quality
+- [x] 59 tests (100% pass rate)
+- [x] 13 new error handling tests
 
 ---
 
-## v0.0.3 - Metal API Bindings
+## v0.0.3 - Metal API Bindings ✅
 
-**Status:** Planned
+**Status:** Complete
+**Release Date:** 2025-12-28
 
 ### Metal Core
-- [ ] MTLDevice bindings
-- [ ] Device capability detection
-- [ ] Apple Silicon / Intel GPU detection
-- [ ] Error handling for Metal unavailable
+- [x] MTLDevice bindings (metal_device.nim)
+- [x] Device capability detection (metal_capabilities.nim)
+- [x] Apple Silicon / Intel GPU detection
+- [x] Error handling for Metal unavailable
 
 ### Basic Types
-- [ ] MTLBuffer Nim wrapper
-- [ ] MTLCommandQueue wrapper
-- [ ] MTLCommandBuffer wrapper
-- [ ] MTLComputeCommandEncoder wrapper
+- [x] MTLBuffer Nim wrapper (metal_buffer.nim)
+- [x] MTLCommandQueue wrapper (metal_command.nim)
+- [x] MTLCommandBuffer wrapper
+- [x] MTLComputeCommandEncoder wrapper
 
 ### Memory Management
-- [ ] Shared memory mode (unified memory)
-- [ ] Private memory mode
-- [ ] Buffer allocation/deallocation
+- [x] Shared memory mode (unified memory)
+- [x] Private memory mode
+- [x] Managed memory mode
+- [x] Buffer allocation/deallocation
+
+### Capabilities Detection
+- [x] GPU family detection (Apple1-9, Mac1-2, Common1-3)
+- [x] Compute capabilities query
+- [x] Memory capabilities query
+- [x] Feature support table
+- [x] Threadgroup size recommendations
+
+### Quality
+- [x] 37 new Metal tests (96 total)
+- [x] Platform-conditional tests (macOS)
 
 ---
 

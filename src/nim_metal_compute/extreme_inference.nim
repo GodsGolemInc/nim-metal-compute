@@ -45,6 +45,24 @@ proc initWeights*(engine: var ExtremeEngine, seed: uint32 = 42) =
     engine.bO[k] = 0.0f32
 {.pop.}
 
+proc setWeights*(engine: var ExtremeEngine,
+                 weightsIH: ptr array[InputSize, array[HiddenSize, float]],
+                 biasH: ptr array[HiddenSize, float],
+                 weightsHO: ptr array[HiddenSize, array[OutputSize, float]],
+                 biasO: ptr array[OutputSize, float]) =
+  ## 外部から重みを設定（転置して格納）
+  # 入力→隠れ層の重みを転置
+  for j in 0..<HiddenSize:
+    for i in 0..<InputSize:
+      engine.wIH_T[j][i] = weightsIH[i][j].float32
+    engine.bH[j] = biasH[j].float32
+
+  # 隠れ層→出力層の重みを転置
+  for k in 0..<OutputSize:
+    for j in 0..<HiddenSize:
+      engine.wHO_T[k][j] = weightsHO[j][k].float32
+    engine.bO[k] = biasO[k].float32
+
 {.push checks:off, boundChecks:off, overflowChecks:off, rangeChecks:off, nilChecks:off.}
 
 # 高速exp近似（精度は落ちるが10倍速い）

@@ -1,6 +1,6 @@
 # Implementation Status
 
-Current Version: **0.0.2**
+Current Version: **0.0.3**
 
 ## Core Components
 
@@ -49,7 +49,7 @@ Current Version: **0.0.2**
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Test count | - | 59 |
+| Test count | - | 90+ |
 | Test pass rate | 100% | ✅ 100% |
 | Documentation coverage | 100% | ✅ 100% |
 | Module coverage | 100% | ✅ 100% |
@@ -68,19 +68,26 @@ Current Version: **0.0.2**
 
 ## Planned Features
 
-### v0.0.3 - Metal API Bindings
+### v0.0.3 - Metal API Bindings ✅ Complete (Stub Implementation)
+
+Note: v0.0.3 provides the Metal API structure with stub implementations.
+Full objc_msgSend integration for actual Metal operations is planned for v0.0.4.
+
+| Feature | Status | Tests | Docs |
+|---------|--------|-------|------|
+| MTLDevice bindings | ✅ | ✅ | ✅ |
+| MTLBuffer management | ✅ (stub) | ✅ | ✅ |
+| MTLCommandQueue/Buffer/Encoder | ✅ (stub) | ✅ | ✅ |
+| Device capability detection | ✅ (stub) | ✅ | ✅ |
+| objc_runtime.nim | ✅ | - | ✅ |
+
+### v0.0.4 - Metal Runtime Integration & Compute Pipeline
 
 | Feature | Status |
 |---------|--------|
-| MTLDevice bindings | 🔲 Planned |
-| MTLBuffer management | 🔲 Planned |
-| MTLCommandQueue | 🔲 Planned |
-| Device capability detection | 🔲 Planned |
-
-### v0.0.4 - Compute Pipeline
-
-| Feature | Status |
-|---------|--------|
+| objc_msgSend proper integration | 🔲 Planned |
+| Full MTLDevice property access | 🔲 Planned |
+| MTLBuffer actual allocation | 🔲 Planned |
 | MTLComputePipelineState | 🔲 Planned |
 | Runtime shader compilation | 🔲 Planned |
 | Thread configuration | 🔲 Planned |

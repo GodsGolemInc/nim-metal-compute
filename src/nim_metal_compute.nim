@@ -33,6 +33,10 @@ import nim_metal_compute/weights
 import nim_metal_compute/codegen
 import nim_metal_compute/unified_api
 import nim_metal_compute/simd_inference
+import nim_metal_compute/metal_device
+import nim_metal_compute/metal_buffer
+import nim_metal_compute/metal_command
+import nim_metal_compute/metal_capabilities
 
 # エラーハンドリング (v0.0.2+)
 export errors.NMCErrorKind
@@ -140,6 +144,7 @@ export extreme_inference.InputSize
 export extreme_inference.HiddenSize
 export extreme_inference.OutputSize
 export extreme_inference.initWeights
+export extreme_inference.setWeights
 export extreme_inference.inferExtreme
 export extreme_inference.inferExtremeWithConf
 
@@ -149,12 +154,71 @@ export parallel_inference.MaxThreads
 export parallel_inference.ParallelInferenceEngine
 export parallel_inference.BatchInferenceResult
 export parallel_inference.initParallelEngine
+export parallel_inference.syncWeights
 export parallel_inference.inferBatchParallel
 export parallel_inference.inferBatch
 
+# Metal API bindings (v0.0.3+) - temporarily disabled due to build issues
+# export metal_device.MTLDeviceRef
+# export metal_device.MTLCommandQueueRef
+# export metal_device.DeviceInfo
+# export metal_device.MetalDevice
+# export metal_device.isMetalAvailable
+# export metal_device.getDefaultDevice
+# export metal_device.isAppleSilicon
+#
+# export metal_buffer.MTLBufferRef
+# export metal_buffer.MTLStorageMode
+# export metal_buffer.MTLResourceOptions
+# export metal_buffer.MetalBuffer
+# export metal_buffer.newBuffer
+# export metal_buffer.newBufferWithData
+# export metal_buffer.contents
+# export metal_buffer.write
+# export metal_buffer.read
+# export metal_buffer.didModifyRange
+# export metal_buffer.synchronize
+#
+# export metal_command.MTLCommandBufferRef
+# export metal_command.MTLComputeCommandEncoderRef
+# export metal_command.MTLComputePipelineStateRef
+# export metal_command.MTLCommandBufferStatus
+# export metal_command.MetalCommandQueue
+# export metal_command.MetalCommandBuffer
+# export metal_command.MetalComputeEncoder
+# export metal_command.MTLSize
+# export metal_command.mtlSize
+# export metal_command.mtlSize1D
+# export metal_command.mtlSize2D
+# export metal_command.newCommandBuffer
+# export metal_command.status
+# export metal_command.commit
+# export metal_command.waitUntilCompleted
+# export metal_command.waitUntilScheduled
+# export metal_command.newComputeEncoder
+# export metal_command.setBuffer
+# export metal_command.setBytes
+# export metal_command.setComputePipelineState
+# export metal_command.dispatchThreadgroups
+# export metal_command.dispatchThreads
+# export metal_command.endEncoding
+#
+# export metal_capabilities.MTLGPUFamily
+# export metal_capabilities.ComputeCapabilities
+# export metal_capabilities.MemoryCapabilities
+# export metal_capabilities.DeviceCapabilities
+# export metal_capabilities.detectGPUFamily
+# export metal_capabilities.familyName
+# export metal_capabilities.isAppleSiliconFamily
+# export metal_capabilities.getComputeCapabilities
+# export metal_capabilities.getMemoryCapabilities
+# export metal_capabilities.getCapabilities
+# export metal_capabilities.recommendedThreadgroupSize
+# export metal_capabilities.isCapableFor
+
 # バージョン情報
 const
-  NimMetalComputeVersion* = "0.0.2"
+  NimMetalComputeVersion* = "0.0.3"
   NimMetalComputeAuthor* = "GodsGolemInc"
 
 when isMainModule:

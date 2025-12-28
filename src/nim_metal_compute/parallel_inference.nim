@@ -78,6 +78,15 @@ proc initParallelEngine*(engine: var ParallelInferenceEngine,
 
   engine.initialized = true
 
+proc syncWeights*(engine: var ParallelInferenceEngine,
+                  weightsIH: ptr array[InputSize, array[HiddenSize, float]],
+                  biasH: ptr array[HiddenSize, float],
+                  weightsHO: ptr array[HiddenSize, array[OutputSize, float]],
+                  biasO: ptr array[OutputSize, float]) =
+  ## 全ワーカーの重みを同期
+  for i in 0 ..< engine.numThreads:
+    engine.workers[i].engine.setWeights(weightsIH, biasH, weightsHO, biasO)
+
 proc inferBatchParallelFast*(engine: var ParallelInferenceEngine,
                               inputs: ptr UncheckedArray[array[InputSize, float32]],
                               outputs: ptr UncheckedArray[int],
