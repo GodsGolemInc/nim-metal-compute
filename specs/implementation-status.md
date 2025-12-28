@@ -1,6 +1,6 @@
 # Implementation Status
 
-Current Version: **0.0.7**
+Current Version: **0.0.8**
 
 ## Core Components
 
@@ -144,21 +144,24 @@ Performance Results (Apple M2, 784->256->128->10 network):
 - Throughput: 3319 inferences/sec
 - Softmax output verified correct
 
-### v0.0.8 - Async Execution
+### v0.0.8 - Async Execution and Profiling ✅ Complete
 
-| Feature | Status |
-|---------|--------|
-| Async command submission | 🔲 Planned |
-| Completion handlers | 🔲 Planned |
-| Double buffering | 🔲 Planned |
+| Feature | Status | Tests | Docs |
+|---------|--------|-------|------|
+| Async command submission | ✅ | ✅ | ✅ |
+| Completion handlers | ✅ | ✅ | ✅ |
+| Double buffering | ✅ | ✅ | ✅ |
+| GPU timing queries | ✅ | ✅ | ✅ |
+| Shared events for synchronization | ✅ | ✅ | ✅ |
+| AsyncCommandBuffer class | ✅ | ✅ | ✅ |
+| DoubleBuffer generic class | ✅ | ✅ | ✅ |
 
-### v0.0.8 - Profiling
-
-| Feature | Status |
-|---------|--------|
-| GPU timing queries | 🔲 Planned |
-| Bandwidth measurement | 🔲 Planned |
-| Metal validation layer | 🔲 Planned |
+Features:
+- Async command buffer submission with completion callbacks
+- GPU timing queries (gpuStartTime, gpuEndTime, kernelStartTime, kernelEndTime)
+- SharedEvent for cross-command buffer synchronization
+- Double buffering for pipelined GPU operations
+- Completion handler callback mechanism
 
 ### v0.0.9 - Stabilization
 

@@ -166,6 +166,61 @@ when defined(macosx):
   proc nmc_release_pipeline_state*(pipeline: pointer)
     {.importc, cdecl.}
 
+  # ========== Async Execution Functions ==========
+
+  type
+    NMCCompletionCallback* = proc(context: pointer, status: cint) {.cdecl.}
+
+  proc nmc_command_buffer_add_completion_handler*(cmdBuffer: pointer,
+                                                    callback: NMCCompletionCallback,
+                                                    userContext: pointer): cint
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_commit_async*(cmdBuffer: pointer): cint
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_is_completed*(cmdBuffer: pointer): cint
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_gpu_start_time*(cmdBuffer: pointer): cdouble
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_gpu_end_time*(cmdBuffer: pointer): cdouble
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_kernel_start_time*(cmdBuffer: pointer): cdouble
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_kernel_end_time*(cmdBuffer: pointer): cdouble
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_error_message*(cmdBuffer: pointer): cstring
+    {.importc, cdecl.}
+
+  proc nmc_create_command_buffer_retained*(queue: pointer): pointer
+    {.importc, cdecl.}
+
+  # ========== Event Functions for Synchronization ==========
+
+  proc nmc_create_shared_event*(device: pointer): pointer
+    {.importc, cdecl.}
+
+  proc nmc_shared_event_value*(event: pointer): uint64
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_encode_wait_for_event*(cmdBuffer: pointer,
+                                                   event: pointer,
+                                                   value: uint64)
+    {.importc, cdecl.}
+
+  proc nmc_command_buffer_encode_signal_event*(cmdBuffer: pointer,
+                                                 event: pointer,
+                                                 value: uint64)
+    {.importc, cdecl.}
+
+  proc nmc_release_shared_event*(event: pointer)
+    {.importc, cdecl.}
+
   # ========== Utility Functions ==========
 
   proc nmc_free_string*(str: cstring)
@@ -227,4 +282,28 @@ else:
   proc nmc_release_library*(library: pointer) = discard
   proc nmc_release_function*(function: pointer) = discard
   proc nmc_release_pipeline_state*(pipeline: pointer) = discard
+  # Async execution stubs
+  type
+    NMCCompletionCallback* = proc(context: pointer, status: cint) {.cdecl.}
+  proc nmc_command_buffer_add_completion_handler*(cmdBuffer: pointer,
+                                                    callback: NMCCompletionCallback,
+                                                    userContext: pointer): cint = 0
+  proc nmc_command_buffer_commit_async*(cmdBuffer: pointer): cint = 0
+  proc nmc_command_buffer_is_completed*(cmdBuffer: pointer): cint = 1
+  proc nmc_command_buffer_gpu_start_time*(cmdBuffer: pointer): cdouble = 0.0
+  proc nmc_command_buffer_gpu_end_time*(cmdBuffer: pointer): cdouble = 0.0
+  proc nmc_command_buffer_kernel_start_time*(cmdBuffer: pointer): cdouble = 0.0
+  proc nmc_command_buffer_kernel_end_time*(cmdBuffer: pointer): cdouble = 0.0
+  proc nmc_command_buffer_error_message*(cmdBuffer: pointer): cstring = nil
+  proc nmc_create_command_buffer_retained*(queue: pointer): pointer = nil
+  # Event stubs
+  proc nmc_create_shared_event*(device: pointer): pointer = nil
+  proc nmc_shared_event_value*(event: pointer): uint64 = 0
+  proc nmc_command_buffer_encode_wait_for_event*(cmdBuffer: pointer,
+                                                   event: pointer,
+                                                   value: uint64) = discard
+  proc nmc_command_buffer_encode_signal_event*(cmdBuffer: pointer,
+                                                 event: pointer,
+                                                 value: uint64) = discard
+  proc nmc_release_shared_event*(event: pointer) = discard
   proc nmc_free_string*(str: cstring) = discard

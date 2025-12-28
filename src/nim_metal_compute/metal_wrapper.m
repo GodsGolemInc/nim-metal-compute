@@ -484,6 +484,153 @@ void nmc_release_pipeline_state(void* pipeline) {
     }
 }
 
+// ========== Async Execution Functions ==========
+
+// Callback context structure for async operations
+typedef struct {
+    void (*callback)(void* context, int status);
+    void* userContext;
+} NMCCompletionContext;
+
+/// Schedule a command buffer with a completion handler
+/// The callback will be called when the command buffer completes
+/// Returns 1 on success, 0 on failure
+int nmc_command_buffer_add_completion_handler(void* cmdBuffer,
+                                               void (*callback)(void* context, int status),
+                                               void* userContext) {
+    if (cmdBuffer == NULL || callback == NULL) return 0;
+
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+
+    // Copy the callback info to heap (so it persists until callback is called)
+    NMCCompletionContext* ctx = (NMCCompletionContext*)malloc(sizeof(NMCCompletionContext));
+    ctx->callback = callback;
+    ctx->userContext = userContext;
+
+    [mtlCmdBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer) {
+        MTLCommandBufferStatus status = buffer.status;
+        ctx->callback(ctx->userContext, (int)status);
+        free(ctx);
+    }];
+
+    return 1;
+}
+
+/// Commit command buffer without waiting (async submission)
+/// Returns 1 on success, 0 on failure
+int nmc_command_buffer_commit_async(void* cmdBuffer) {
+    if (cmdBuffer == NULL) return 0;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    [mtlCmdBuffer commit];
+    return 1;
+}
+
+/// Check if command buffer execution has completed
+/// Returns 1 if completed, 0 if still running
+int nmc_command_buffer_is_completed(void* cmdBuffer) {
+    if (cmdBuffer == NULL) return 0;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    MTLCommandBufferStatus status = mtlCmdBuffer.status;
+    return (status == MTLCommandBufferStatusCompleted ||
+            status == MTLCommandBufferStatusError) ? 1 : 0;
+}
+
+/// Get command buffer GPU execution start time
+/// Returns 0 if not available
+double nmc_command_buffer_gpu_start_time(void* cmdBuffer) {
+    if (cmdBuffer == NULL) return 0.0;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    return mtlCmdBuffer.GPUStartTime;
+}
+
+/// Get command buffer GPU execution end time
+/// Returns 0 if not available
+double nmc_command_buffer_gpu_end_time(void* cmdBuffer) {
+    if (cmdBuffer == NULL) return 0.0;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    return mtlCmdBuffer.GPUEndTime;
+}
+
+/// Get command buffer kernel execution start time
+/// Returns 0 if not available
+double nmc_command_buffer_kernel_start_time(void* cmdBuffer) {
+    if (cmdBuffer == NULL) return 0.0;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    return mtlCmdBuffer.kernelStartTime;
+}
+
+/// Get command buffer kernel execution end time
+/// Returns 0 if not available
+double nmc_command_buffer_kernel_end_time(void* cmdBuffer) {
+    if (cmdBuffer == NULL) return 0.0;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    return mtlCmdBuffer.kernelEndTime;
+}
+
+/// Get command buffer error message (if any)
+/// Returns NULL if no error, caller must free the returned string
+char* nmc_command_buffer_error_message(void* cmdBuffer) {
+    if (cmdBuffer == NULL) return NULL;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    NSError* error = mtlCmdBuffer.error;
+    if (error == nil) return NULL;
+    return strdup([[error localizedDescription] UTF8String]);
+}
+
+/// Create command buffer with retained references (for double buffering)
+void* nmc_create_command_buffer_retained(void* queue) {
+    if (queue == NULL) return NULL;
+    id<MTLCommandQueue> mtlQueue = (__bridge id<MTLCommandQueue>)queue;
+    id<MTLCommandBuffer> cmdBuffer = [mtlQueue commandBufferWithUnretainedReferences];
+    if (cmdBuffer == nil) {
+        // Fallback to regular command buffer
+        cmdBuffer = [mtlQueue commandBuffer];
+    }
+    return (__bridge_retained void*)cmdBuffer;
+}
+
+// ========== Event and Fence Functions for Synchronization ==========
+
+/// Create a shared event for cross-command buffer synchronization
+void* nmc_create_shared_event(void* device) {
+    if (device == NULL) return NULL;
+    id<MTLDevice> mtlDevice = (__bridge id<MTLDevice>)device;
+    id<MTLSharedEvent> event = [mtlDevice newSharedEvent];
+    if (event == nil) return NULL;
+    return (__bridge_retained void*)event;
+}
+
+/// Get current value of shared event
+uint64_t nmc_shared_event_value(void* event) {
+    if (event == NULL) return 0;
+    id<MTLSharedEvent> mtlEvent = (__bridge id<MTLSharedEvent>)event;
+    return mtlEvent.signaledValue;
+}
+
+/// Encode wait for shared event in command buffer
+void nmc_command_buffer_encode_wait_for_event(void* cmdBuffer, void* event, uint64_t value) {
+    if (cmdBuffer == NULL || event == NULL) return;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    id<MTLSharedEvent> mtlEvent = (__bridge id<MTLSharedEvent>)event;
+    [mtlCmdBuffer encodeWaitForEvent:mtlEvent value:value];
+}
+
+/// Encode signal for shared event in command buffer
+void nmc_command_buffer_encode_signal_event(void* cmdBuffer, void* event, uint64_t value) {
+    if (cmdBuffer == NULL || event == NULL) return;
+    id<MTLCommandBuffer> mtlCmdBuffer = (__bridge id<MTLCommandBuffer>)cmdBuffer;
+    id<MTLSharedEvent> mtlEvent = (__bridge id<MTLSharedEvent>)event;
+    [mtlCmdBuffer encodeSignalEvent:mtlEvent value:value];
+}
+
+/// Release shared event
+void nmc_release_shared_event(void* event) {
+    if (event != NULL) {
+        id<MTLSharedEvent> mtlEvent = (__bridge_transfer id<MTLSharedEvent>)event;
+        (void)mtlEvent;
+    }
+}
+
 // ========== Utility Functions ==========
 
 /// Free a C string allocated by this wrapper
