@@ -1,9 +1,66 @@
 # Compiled binaries
 bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.out
 
-# Nim cache
+# Nim cache directories
 nimcache/
 nimblecache/
+~/.nimble/
+.nimble/
+
+# Object files
+*.o
+*.obj
+*.a
+*.lib
+
+# Metal compiled files
+*.metallib
+*.air
 
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+\#*\#
+.#*
+
+# Test artifacts
+*.log
+test_output/
+coverage/
+*.lcov
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+
+# Build artifacts
+build/
+dist/
+*.dSYM/
+
+# Nimble package cache
+packages/
+
+# Profile data
+*.pprof
+*.prof
+
+# Crash dumps
+*.crash
+*.core
