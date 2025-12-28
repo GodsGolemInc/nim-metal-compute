@@ -8,6 +8,7 @@
 ##     .addDense("output", 64, 10, actSoftmax)
 
 import std/[strformat, strutils, json, tables]
+import errors
 
 type
   ActivationType* = enum
@@ -101,7 +102,7 @@ proc addDropout*(net: var NetworkSpec, name: string,
 # ========== バリデーション ==========
 
 proc validate*(spec: NetworkSpec): bool =
-  ## ネットワーク定義の妥当性を検証
+  ## ネットワーク定義の妥当性を検証 (例外版 - 後方互換性)
   if spec.layers.len == 0:
     raise newException(NetworkError, "Network has no layers")
 
@@ -113,6 +114,70 @@ proc validate*(spec: NetworkSpec): bool =
         fmt"Layer size mismatch: {prev.name} output ({prev.outputSize}) != {curr.name} input ({curr.inputSize})")
 
   result = true
+
+proc validateResult*(spec: NetworkSpec): VoidResult =
+  ## ネットワーク定義の妥当性を検証 (Result型版 - v0.0.2+)
+  if spec.layers.len == 0:
+    return errVoid(ekEmptyNetwork, "Network has no layers")
+
+  for i in 1..<spec.layers.len:
+    let prev = spec.layers[i - 1]
+    let curr = spec.layers[i]
+    if prev.outputSize != curr.inputSize:
+      return errVoid(newError(ekLayerMismatch,
+        fmt"Layer size mismatch: {prev.name} output ({prev.outputSize}) != {curr.name} input ({curr.inputSize})",
+        fmt"Expected {prev.outputSize}, got {curr.inputSize}",
+        fmt"layer[{i}]"))
+
+  # 各層の個別検証
+  for i, layer in spec.layers:
+    if layer.inputSize <= 0:
+      return errVoid(newError(ekInvalidInputSize,
+        fmt"Invalid input size for layer {layer.name}",
+        fmt"inputSize must be > 0, got {layer.inputSize}",
+        fmt"layer[{i}]"))
+
+    if layer.outputSize <= 0:
+      return errVoid(newError(ekInvalidOutputSize,
+        fmt"Invalid output size for layer {layer.name}",
+        fmt"outputSize must be > 0, got {layer.outputSize}",
+        fmt"layer[{i}]"))
+
+    if layer.name.len == 0:
+      return errVoid(newError(ekInvalidLayerName,
+        "Layer name cannot be empty",
+        "",
+        fmt"layer[{i}]"))
+
+    # Dropout検証
+    if layer.kind == lkDropout:
+      if layer.dropoutRate < 0.0 or layer.dropoutRate > 1.0:
+        return errVoid(newError(ekInvalidInputSize,
+          fmt"Invalid dropout rate for layer {layer.name}",
+          fmt"dropoutRate must be in [0, 1], got {layer.dropoutRate}",
+          fmt"layer[{i}]"))
+
+  result = okVoid()
+
+proc validateLayer*(layer: LayerSpec): VoidResult =
+  ## 単一レイヤーの妥当性を検証
+  if layer.name.len == 0:
+    return errVoid(ekInvalidLayerName, "Layer name cannot be empty")
+
+  if layer.inputSize <= 0:
+    return errVoid(ekInvalidInputSize,
+      fmt"inputSize must be > 0, got {layer.inputSize}")
+
+  if layer.outputSize <= 0:
+    return errVoid(ekInvalidOutputSize,
+      fmt"outputSize must be > 0, got {layer.outputSize}")
+
+  if layer.kind == lkDropout:
+    if layer.dropoutRate < 0.0 or layer.dropoutRate > 1.0:
+      return errVoid(ekInvalidInputSize,
+        fmt"dropoutRate must be in [0, 1], got {layer.dropoutRate}")
+
+  result = okVoid()
 
 # ========== シリアライズ ==========
 

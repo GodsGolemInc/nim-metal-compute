@@ -559,6 +559,141 @@ suite "ActorInference":
     for i in 0..<NumWorkers:
       check system.workers[i].state == wsStopped
 
+suite "ErrorHandling":
+  test "basic Result operations":
+    let success = ok(42)
+    let failure = err[int](ekInvalidInputSize, "Test error")
+
+    check success.isOk == true
+    check failure.isErr == true
+    check success.get == 42
+    check failure.getOr(0) == 0
+
+  test "map Result":
+    let success = ok(21)
+    let doubled = success.map(proc(x: int): int = x * 2)
+    check doubled.get == 42
+
+  test "validateResult on valid network":
+    var spec = newNetwork("TestNet", 64)
+    spec
+      .addDense("hidden", 64, 64, actReLU)
+      .addDense("output", 64, 10, actSoftmax)
+
+    let result = spec.validateResult()
+    check result.isOk == true
+
+  test "validateResult on empty network":
+    let spec = newNetwork("EmptyNet", 64)
+    let result = spec.validateResult()
+    check result.isErr == true
+    check result.error.kind == ekEmptyNetwork
+
+  test "validateResult on mismatched layers":
+    var spec = newNetwork("MismatchNet", 64)
+    spec
+      .addDense("hidden", 64, 128, actReLU)
+      .addDense("output", 64, 10, actSoftmax)  # Mismatch: 128 != 64
+
+    let result = spec.validateResult()
+    check result.isErr == true
+    check result.error.kind == ekLayerMismatch
+
+  test "validateLayer valid":
+    let layer = LayerSpec(
+      name: "test",
+      kind: lkDense,
+      inputSize: 64,
+      outputSize: 32,
+      activation: actReLU
+    )
+    let result = validateLayer(layer)
+    check result.isOk == true
+
+  test "validateLayer invalid input size":
+    let layer = LayerSpec(
+      name: "test",
+      kind: lkDense,
+      inputSize: 0,  # Invalid
+      outputSize: 32,
+      activation: actReLU
+    )
+    let result = validateLayer(layer)
+    check result.isErr == true
+    check result.error.kind == ekInvalidInputSize
+
+  test "validateLayer empty name":
+    let layer = LayerSpec(
+      name: "",  # Invalid
+      kind: lkDense,
+      inputSize: 64,
+      outputSize: 32,
+      activation: actReLU
+    )
+    let result = validateLayer(layer)
+    check result.isErr == true
+    check result.error.kind == ekInvalidLayerName
+
+  test "saveNMWResult and loadNMWResult":
+    let spec = koanClassifierSpec()
+    var weights = newNetworkWeights(spec)
+    weights.initXavier(42)
+
+    let (tmpFile, tmpPath) = createTempFile("weights_err_", ".nmw")
+    tmpFile.close()
+
+    # Save with Result
+    let saveResult = weights.saveNMWResult(tmpPath)
+    check saveResult.isOk == true
+
+    # Load with Result
+    let loadResult = loadNMWResult(tmpPath)
+    check loadResult.isOk == true
+    check loadResult.get.spec.name == spec.name
+
+    removeFile(tmpPath)
+
+  test "loadNMWResult file not found":
+    let result = loadNMWResult("/nonexistent/path/weights.nmw")
+    check result.isErr == true
+    check result.error.kind == ekFileNotFound
+
+  test "generateResult valid":
+    let spec = koanClassifierSpec()
+    var opts = defaultOptions()
+    opts.outputDir = getTempDir() / "error_test_gen"
+
+    let result = spec.generateResult(opts)
+    check result.isOk == true
+    check result.get.filesGenerated == 2
+
+    removeDir(opts.outputDir)
+
+  test "generateResult empty network":
+    let spec = newNetwork("EmptyNet", 64)  # No layers
+    var opts = defaultOptions()
+    opts.outputDir = getTempDir() / "error_test_gen_empty"
+
+    let result = spec.generateResult(opts)
+    check result.isErr == true
+    check result.error.kind == ekEmptyNetwork
+
+  test "validation helpers":
+    let pos = validatePositive(10, "size")
+    let neg = validatePositive(-5, "size")
+    check pos.isOk == true
+    check neg.isErr == true
+
+    let valid = validateRange(0.5, 0.0, 1.0, "rate")
+    let invalid = validateRange(1.5, 0.0, 1.0, "rate")
+    check valid.isOk == true
+    check invalid.isErr == true
+
+    let nonEmpty = validateNonEmpty(@[1, 2, 3], "items")
+    let empty = validateNonEmpty(newSeq[int](), "items")
+    check nonEmpty.isOk == true
+    check empty.isErr == true
+
 when isMainModule:
   echo "Running nim-metal-compute tests..."
   echo ""

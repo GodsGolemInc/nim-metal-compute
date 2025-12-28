@@ -28,8 +28,8 @@ This directory contains specifications for nim-metal-compute development.
 ## Version Scheme
 
 ```
-0.0.1  CPU推論エンジン (SIMD/並列)      ✅ Current
-0.0.2  エラーハンドリング改善
+0.0.1  CPU推論エンジン (SIMD/並列)      ✅ Complete
+0.0.2  エラーハンドリング改善            ✅ Current
 0.0.3  Metal APIバインディング
 0.0.4  Compute Pipeline実装
 0.0.5  シェーダーランタイム実行
@@ -42,11 +42,11 @@ This directory contains specifications for nim-metal-compute development.
 
 ## Current Status
 
-- **Version:** 0.0.1
-- **Focus:** CPU Inference Engines
-- **Tests:** 46 (100% pass rate)
+- **Version:** 0.0.2
+- **Focus:** Error Handling & Stabilization
+- **Tests:** 59 (100% pass rate)
 - **Documentation:** Complete
-- **Next:** v0.0.2 (Stabilization)
+- **Next:** v0.0.3 (Metal API Bindings)
 
 ## Architecture
 

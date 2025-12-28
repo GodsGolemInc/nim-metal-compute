@@ -1,10 +1,10 @@
 # Package
 
-version       = "0.1.0"
-author        = "GodsGolemInc"
-description   = "Metal Compute Shader bindings for Nim - GPU accelerated neural networks"
-license       = "MIT"
-srcDir        = "src"
+version = "0.1.0"
+author = "GodsGolemInc"
+description = "Metal Compute Shader bindings for Nim - GPU accelerated neural networks"
+license = "Apache-2.0"
+srcDir = "src"
 
 # Dependencies
 

@@ -27,11 +27,34 @@
 ##   # Metal シェーダーとNim CPUコードを生成
 ##   spec.generate(CodeGenOptions(outputDir: "generated"))
 
+import nim_metal_compute/errors
 import nim_metal_compute/network_spec
 import nim_metal_compute/weights
 import nim_metal_compute/codegen
 import nim_metal_compute/unified_api
 import nim_metal_compute/simd_inference
+
+# エラーハンドリング (v0.0.2+)
+export errors.NMCErrorKind
+export errors.NMCError
+export errors.NMCResult
+export errors.VoidResult
+export errors.newError
+export errors.ok
+export errors.err
+export errors.isOk
+export errors.isErr
+export errors.get
+export errors.getOr
+export errors.getError
+export errors.map
+export errors.flatMap
+export errors.mapError
+export errors.okVoid
+export errors.errVoid
+export errors.validatePositive
+export errors.validateNonEmpty
+export errors.validateRange
 
 # ネットワーク定義
 export network_spec.ActivationType
@@ -54,6 +77,8 @@ export network_spec.inputSize
 export network_spec.outputSize
 export network_spec.koanClassifierSpec
 export network_spec.mlpClassifier
+export network_spec.validateResult
+export network_spec.validateLayer
 
 # 重み管理
 export weights.WeightTensor
@@ -69,6 +94,8 @@ export weights.saveJSON
 export weights.loadJSON
 export weights.toFlatArray
 export weights.fromFlatArray
+export weights.saveNMWResult
+export weights.loadNMWResult
 
 # コード生成
 export codegen.CodeGenTarget
@@ -77,6 +104,8 @@ export codegen.defaultOptions
 export codegen.generateMetalKernel
 export codegen.generateNimCPU
 export codegen.generate
+export codegen.generateResult
+export codegen.GenerateResultData
 
 # 統一API
 export unified_api.AcceleratorType
@@ -125,7 +154,7 @@ export parallel_inference.inferBatch
 
 # バージョン情報
 const
-  NimMetalComputeVersion* = "0.1.0"
+  NimMetalComputeVersion* = "0.0.2"
   NimMetalComputeAuthor* = "GodsGolemInc"
 
 when isMainModule:

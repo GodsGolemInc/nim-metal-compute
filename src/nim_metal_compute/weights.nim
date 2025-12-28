@@ -8,6 +8,7 @@
 
 import std/[streams, json, tables, strformat, strutils, random, math, os]
 import network_spec
+import errors
 
 type
   WeightTensor* = object
@@ -138,8 +139,129 @@ proc initKaiming*(weights: NetworkWeights, seed: int = 42) =
 
 # ========== バイナリ形式 (.nmw) ==========
 
+proc saveNMWResult*(weights: NetworkWeights, path: string): VoidResult =
+  ## バイナリ形式で保存 (Result型版 - v0.0.2+)
+  var s = newFileStream(path, fmWrite)
+  if s == nil:
+    return errVoid(newError(ekFileWriteError,
+      fmt"Failed to open file for writing: {path}",
+      "Check file permissions and path validity",
+      "saveNMWResult"))
+
+  defer: s.close()
+
+  try:
+    # ヘッダー
+    s.write(NMW_MAGIC)
+    s.write(NMW_VERSION)
+
+    # ネットワーク定義 (JSON)
+    let specJson = $weights.spec.toJson()
+    s.write(specJson.len.int32)
+    s.write(specJson)
+
+    # テンソル数
+    s.write(weights.tensors.len.int32)
+
+    # 各テンソル
+    for name, tensor in weights.tensors:
+      s.write(name.len.int32)
+      s.write(name)
+      s.write(tensor.shape.len.int32)
+      for dim in tensor.shape:
+        s.write(dim.int32)
+      s.write(tensor.data.len.int32)
+      for val in tensor.data:
+        s.write(val)
+
+    result = okVoid()
+  except:
+    result = errVoid(newError(ekFileWriteError,
+      fmt"Error writing to file: {path}",
+      getCurrentExceptionMsg(),
+      "saveNMWResult"))
+
+proc loadNMWResult*(path: string): NMCResult[NetworkWeights] =
+  ## バイナリ形式から読み込み (Result型版 - v0.0.2+)
+  if not fileExists(path):
+    return err[NetworkWeights](newError(ekFileNotFound,
+      fmt"File not found: {path}",
+      "Ensure the file exists and path is correct",
+      "loadNMWResult"))
+
+  var s = newFileStream(path, fmRead)
+  if s == nil:
+    return err[NetworkWeights](newError(ekFileNotFound,
+      fmt"Failed to open file: {path}",
+      "Check file permissions",
+      "loadNMWResult"))
+
+  defer: s.close()
+
+  try:
+    # ヘッダー検証
+    var magic: uint32
+    s.read(magic)
+    if magic != NMW_MAGIC:
+      return err[NetworkWeights](newError(ekInvalidFormat,
+        "Invalid NMW file format",
+        fmt"Expected magic 0x{NMW_MAGIC:X}, got 0x{magic:X}",
+        "loadNMWResult"))
+
+    var version: uint16
+    s.read(version)
+    if version != NMW_VERSION:
+      return err[NetworkWeights](newError(ekVersionMismatch,
+        fmt"Unsupported NMW version: {version}",
+        fmt"Expected version {NMW_VERSION}",
+        "loadNMWResult"))
+
+    # ネットワーク定義
+    var specLen: int32
+    s.read(specLen)
+    var specJson = newString(specLen)
+    discard s.readData(addr specJson[0], specLen)
+
+    let spec = fromJson(parseJson(specJson))
+    var weights = newNetworkWeights(spec)
+
+    # テンソル数
+    var numTensors: int32
+    s.read(numTensors)
+
+    # 各テンソル
+    for _ in 0..<numTensors:
+      var nameLen: int32
+      s.read(nameLen)
+      var name = newString(nameLen)
+      discard s.readData(addr name[0], nameLen)
+
+      var numDims: int32
+      s.read(numDims)
+      var shape = newSeq[int](numDims)
+      for i in 0..<numDims:
+        var dim: int32
+        s.read(dim)
+        shape[i] = dim
+
+      var dataLen: int32
+      s.read(dataLen)
+
+      var tensor = newWeightTensor(name, shape)
+      for i in 0..<dataLen:
+        s.read(tensor.data[i])
+
+      weights.tensors[name] = tensor
+
+    result = ok(weights)
+  except:
+    result = err[NetworkWeights](newError(ekDataCorrupted,
+      fmt"Error reading file: {path}",
+      getCurrentExceptionMsg(),
+      "loadNMWResult"))
+
 proc saveNMW*(weights: NetworkWeights, path: string) =
-  ## バイナリ形式で保存
+  ## バイナリ形式で保存 (例外版 - 後方互換性)
   var s = newFileStream(path, fmWrite)
   if s == nil:
     raise newException(WeightsError, "Failed to open file: " & path)

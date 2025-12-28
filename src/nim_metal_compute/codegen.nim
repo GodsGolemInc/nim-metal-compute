@@ -8,6 +8,7 @@
 
 import std/[strformat, strutils, os]
 import network_spec
+import errors
 
 type
   CodeGenTarget* = enum
@@ -466,8 +467,64 @@ proc softmax(values: var openArray[float32]) =
 
 # ========== 保存・書き出し ==========
 
+type
+  GenerateResultData* = object
+    ## 生成結果データ
+    metalPath*: string
+    nimPath*: string
+    filesGenerated*: int
+
+proc generateResult*(spec: NetworkSpec, opts: CodeGenOptions = defaultOptions()): NMCResult[GenerateResultData] =
+  ## ネットワーク定義からコードを生成してファイルに保存 (Result型版 - v0.0.2+)
+
+  # バリデーション
+  let validation = spec.validateResult()
+  if not validation.isOk:
+    return err[GenerateResultData](validation.error)
+
+  var resultData = GenerateResultData()
+
+  # 出力ディレクトリ作成
+  try:
+    createDir(opts.outputDir)
+  except:
+    return err[GenerateResultData](newError(ekFileWriteError,
+      fmt"Failed to create output directory: {opts.outputDir}",
+      getCurrentExceptionMsg(),
+      "generateResult"))
+
+  let baseName = spec.name.toLowerAscii.replace(" ", "_")
+
+  if opts.target in {tgtMetal, tgtAll}:
+    try:
+      let metalCode = generateMetalKernel(spec, opts)
+      let metalPath = opts.outputDir / baseName & ".metal"
+      writeFile(metalPath, metalCode)
+      resultData.metalPath = metalPath
+      resultData.filesGenerated += 1
+    except:
+      return err[GenerateResultData](newError(ekFileWriteError,
+        fmt"Failed to write Metal shader file",
+        getCurrentExceptionMsg(),
+        "generateResult"))
+
+  if opts.target in {tgtNimCPU, tgtAll}:
+    try:
+      let nimCode = generateNimCPU(spec, opts)
+      let nimPath = opts.outputDir / baseName & "_cpu.nim"
+      writeFile(nimPath, nimCode)
+      resultData.nimPath = nimPath
+      resultData.filesGenerated += 1
+    except:
+      return err[GenerateResultData](newError(ekFileWriteError,
+        fmt"Failed to write Nim CPU file",
+        getCurrentExceptionMsg(),
+        "generateResult"))
+
+  result = ok(resultData)
+
 proc generate*(spec: NetworkSpec, opts: CodeGenOptions = defaultOptions()) =
-  ## ネットワーク定義からコードを生成してファイルに保存
+  ## ネットワーク定義からコードを生成してファイルに保存 (例外版 - 後方互換性)
   createDir(opts.outputDir)
 
   let baseName = spec.name.toLowerAscii.replace(" ", "_")

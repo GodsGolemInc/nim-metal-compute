@@ -6,7 +6,7 @@ Quick start guide for nim-metal-compute.
 
 ```bash
 # Clone repository
-git clone https://github.com/jasagiri/nim-metal-compute.git
+git clone https://github.com/GodsGolemInc/nim-metal-compute.git
 cd nim-metal-compute
 
 # Install dependencies
