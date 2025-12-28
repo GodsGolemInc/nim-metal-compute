@@ -54,6 +54,10 @@ build/
 dist/
 *.dSYM/
 
+# Generated documentation
+htmldocs/
+*.idx
+
 # Nimble package cache
 packages/
 
