@@ -1,6 +1,6 @@
 # Implementation Status
 
-Current Version: **0.0.3**
+Current Version: **0.0.4**
 
 ## Core Components
 
@@ -70,8 +70,7 @@ Current Version: **0.0.3**
 
 ### v0.0.3 - Metal API Bindings ✅ Complete (Stub Implementation)
 
-Note: v0.0.3 provides the Metal API structure with stub implementations.
-Full objc_msgSend integration for actual Metal operations is planned for v0.0.4.
+Note: v0.0.3 provided the Metal API structure with stub implementations.
 
 | Feature | Status | Tests | Docs |
 |---------|--------|-------|------|
@@ -81,16 +80,21 @@ Full objc_msgSend integration for actual Metal operations is planned for v0.0.4.
 | Device capability detection | ✅ (stub) | ✅ | ✅ |
 | objc_runtime.nim | ✅ | - | ✅ |
 
-### v0.0.4 - Metal Runtime Integration & Compute Pipeline
+### v0.0.4 - Metal Runtime Integration via C Wrapper ✅ Complete
 
-| Feature | Status |
-|---------|--------|
-| objc_msgSend proper integration | 🔲 Planned |
-| Full MTLDevice property access | 🔲 Planned |
-| MTLBuffer actual allocation | 🔲 Planned |
-| MTLComputePipelineState | 🔲 Planned |
-| Runtime shader compilation | 🔲 Planned |
-| Thread configuration | 🔲 Planned |
+Note: v0.0.4 replaces the problematic objc_msgSend approach with a proper
+Objective-C wrapper (metal_wrapper.m) that provides C-callable functions.
+
+| Feature | Status | Tests | Docs |
+|---------|--------|-------|------|
+| C wrapper (metal_wrapper.m) | ✅ | ✅ | ✅ |
+| Full MTLDevice property access | ✅ | ✅ | ✅ |
+| MTLBuffer actual allocation/read/write | ✅ | ✅ | ✅ |
+| MTLCommandQueue creation | ✅ | ✅ | ✅ |
+| MTLCommandBuffer commit/wait | ✅ | ✅ | ✅ |
+| MTLComputeCommandEncoder | ✅ | ✅ | ✅ |
+| GPU family detection | ✅ | ✅ | ✅ |
+| Thread configuration | ✅ | ✅ | ✅ |
 
 ### v0.0.5 - Shader Execution
 

@@ -1,7 +1,7 @@
 ## Metal Buffer Management
 ## MTLBuffer wrapper for Nim
 ##
-## v0.0.3: Buffer allocation and data transfer
+## v0.0.4: Buffer allocation and data transfer via C wrapper
 ##
 ## Memory modes:
 ##   - Shared: CPU/GPU shared access (unified memory)
@@ -11,11 +11,7 @@
 import std/[strformat]
 import errors
 import metal_device
-import objc_runtime
-
-when defined(macosx):
-  {.passL: "-framework Metal".}
-  {.passL: "-framework Foundation".}
+import metal_wrapper
 
 type
   # Opaque Metal buffer type
@@ -29,7 +25,7 @@ type
     smMemoryless = 3 # Tile memory only
 
   # Resource options
-  MTLResourceOptions* = distinct uint
+  MTLResourceOptions* = distinct uint32
 
   # Wrapped buffer
   MetalBuffer* = object
@@ -51,21 +47,20 @@ const
   MTLResourceHazardTrackingModeUntracked* = MTLResourceOptions(1 shl 8)
 
 proc `or`(a, b: MTLResourceOptions): MTLResourceOptions =
-  MTLResourceOptions(uint(a) or uint(b))
+  MTLResourceOptions(uint32(a) or uint32(b))
 
-proc resourceOptionsFromStorageMode(mode: MTLStorageMode): MTLResourceOptions =
+proc resourceOptionsFromStorageMode(mode: MTLStorageMode): uint32 =
   case mode
-  of smShared: MTLResourceStorageModeShared
-  of smManaged: MTLResourceStorageModeManaged
-  of smPrivate: MTLResourceStorageModePrivate
-  of smMemoryless: MTLResourceStorageModePrivate  # Fallback
+  of smShared: uint32(MTLResourceStorageModeShared)
+  of smManaged: uint32(MTLResourceStorageModeManaged)
+  of smPrivate: uint32(MTLResourceStorageModePrivate)
+  of smMemoryless: uint32(MTLResourceStorageModePrivate)  # Fallback
 
 # ========== Public API ==========
 
 proc newBuffer*(device: MetalDevice, length: int,
                 mode: MTLStorageMode = smShared): NMCResult[MetalBuffer] =
   ## Create a new buffer with specified length and storage mode
-  ## Note: v0.0.3 provides stub implementation - actual buffer allocation planned for v0.0.4
   when defined(macosx):
     if not device.valid or device.handle.pointer == nil:
       return err[MetalBuffer](newError(ekDeviceNotFound,
@@ -82,15 +77,20 @@ proc newBuffer*(device: MetalDevice, length: int,
         fmt"Buffer length {length} exceeds device max {device.info.maxBufferLength}",
         "Requested buffer size is too large for this device"))
 
-    # v0.0.3: Stub implementation - objc_msgSend integration pending
-    # Actual Metal buffer allocation will be implemented in v0.0.4
-    # For now, return a valid-looking buffer object for API testing
+    let options = resourceOptionsFromStorageMode(mode)
+    let handle = nmc_create_buffer(device.handle.pointer, length.uint64, options)
+
+    if handle == nil:
+      return err[MetalBuffer](newError(ekBufferAllocationError,
+        "Failed to allocate Metal buffer",
+        fmt"Could not allocate {length} bytes"))
+
     result = ok(MetalBuffer(
-      handle: MTLBufferRef(nil),  # Stub handle
+      handle: MTLBufferRef(handle),
       device: device,
       length: length,
       storageMode: mode,
-      valid: true  # Marked valid for API testing
+      valid: true
     ))
   else:
     result = err[MetalBuffer](newError(ekMetalNotAvailable,
@@ -99,7 +99,6 @@ proc newBuffer*(device: MetalDevice, length: int,
 proc newBufferWithData*[T](device: MetalDevice, data: openArray[T],
                            mode: MTLStorageMode = smShared): NMCResult[MetalBuffer] =
   ## Create a new buffer initialized with data
-  ## Note: v0.0.3 provides stub implementation - actual buffer allocation planned for v0.0.4
   when defined(macosx):
     if not device.valid or device.handle.pointer == nil:
       return err[MetalBuffer](newError(ekDeviceNotFound,
@@ -110,14 +109,22 @@ proc newBufferWithData*[T](device: MetalDevice, data: openArray[T],
         "Cannot create buffer from empty data"))
 
     let length = data.len * sizeof(T)
+    let options = resourceOptionsFromStorageMode(mode)
+    let handle = nmc_create_buffer_with_data(device.handle.pointer,
+                                               unsafeAddr data[0],
+                                               length.uint64, options)
 
-    # v0.0.3: Stub implementation - objc_msgSend integration pending
+    if handle == nil:
+      return err[MetalBuffer](newError(ekBufferAllocationError,
+        "Failed to allocate Metal buffer with data",
+        fmt"Could not allocate {length} bytes"))
+
     result = ok(MetalBuffer(
-      handle: MTLBufferRef(nil),  # Stub handle
+      handle: MTLBufferRef(handle),
       device: device,
       length: length,
       storageMode: mode,
-      valid: true  # Marked valid for API testing
+      valid: true
     ))
   else:
     result = err[MetalBuffer](newError(ekMetalNotAvailable,
@@ -125,22 +132,19 @@ proc newBufferWithData*[T](device: MetalDevice, data: openArray[T],
 
 proc contents*(buffer: MetalBuffer): pointer =
   ## Get pointer to buffer contents (for shared/managed only)
-  ## Note: v0.0.3 stub - returns nil as actual buffer allocation is not implemented
   when defined(macosx):
-    if not buffer.valid:
+    if not buffer.valid or buffer.handle.pointer == nil:
       return nil
 
     if buffer.storageMode == smPrivate:
       return nil  # Private storage cannot be accessed from CPU
 
-    # v0.0.3: Stub - no actual buffer contents available
-    result = nil
+    result = nmc_buffer_contents(buffer.handle.pointer)
   else:
     result = nil
 
 proc write*[T](buffer: var MetalBuffer, data: openArray[T], offset: int = 0): VoidResult =
   ## Write data to buffer at specified offset
-  ## Note: v0.0.3 stub - actual buffer write planned for v0.0.4
   if not buffer.valid:
     return errVoid(ekBufferAllocationError, "Buffer is not valid")
 
@@ -153,13 +157,17 @@ proc write*[T](buffer: var MetalBuffer, data: openArray[T], offset: int = 0): Vo
     return errVoid(ekBufferAllocationError,
       fmt"Data overflow: offset({offset}) + size({dataSize}) > buffer length({buffer.length})")
 
-  # v0.0.3: Stub implementation - no actual buffer write
-  # Returns success for API testing purposes
+  let bufPtr = buffer.contents()
+  if bufPtr == nil:
+    return errVoid(ekBufferAllocationError, "Could not get buffer contents")
+
+  let destPtr = cast[pointer](cast[uint](bufPtr) + offset.uint)
+  copyMem(destPtr, unsafeAddr data[0], dataSize)
+
   result = okVoid()
 
 proc read*[T](buffer: MetalBuffer, dest: var openArray[T], offset: int = 0): VoidResult =
   ## Read data from buffer at specified offset
-  ## Note: v0.0.3 stub - actual buffer read planned for v0.0.4
   if not buffer.valid:
     return errVoid(ekBufferAllocationError, "Buffer is not valid")
 
@@ -172,17 +180,22 @@ proc read*[T](buffer: MetalBuffer, dest: var openArray[T], offset: int = 0): Voi
     return errVoid(ekBufferAllocationError,
       fmt"Read overflow: offset({offset}) + size({dataSize}) > buffer length({buffer.length})")
 
-  # v0.0.3: Stub implementation - no actual buffer read
-  # Returns success for API testing purposes (dest remains unchanged)
+  let bufPtr = buffer.contents()
+  if bufPtr == nil:
+    return errVoid(ekBufferAllocationError, "Could not get buffer contents")
+
+  let srcPtr = cast[pointer](cast[uint](bufPtr) + offset.uint)
+  copyMem(addr dest[0], srcPtr, dataSize)
+
   result = okVoid()
 
 proc didModifyRange*(buffer: MetalBuffer, offset, length: int) =
   ## Notify that buffer was modified in range (for managed storage)
-  ## Note: v0.0.3 stub - no actual notification
   when defined(macosx):
     if not buffer.valid or buffer.storageMode != smManaged:
       return
-    # v0.0.3: Stub - no-op for now
+    if buffer.handle.pointer != nil:
+      nmc_buffer_did_modify_range(buffer.handle.pointer, offset.uint64, length.uint64)
 
 proc synchronize*(buffer: MetalBuffer) =
   ## Synchronize buffer for reading from CPU (managed storage)
@@ -196,7 +209,10 @@ proc synchronize*(buffer: MetalBuffer) =
 
 proc release*(buffer: var MetalBuffer) =
   ## Release the buffer
-  ## Note: v0.0.3 stub - no actual release needed
+  when defined(macosx):
+    if buffer.valid and buffer.handle.pointer != nil:
+      nmc_release_buffer(buffer.handle.pointer)
+
   buffer.valid = false
   buffer.handle = MTLBufferRef(nil)
 
@@ -231,7 +247,7 @@ when isMainModule:
     echo "Error: ", deviceResult.error
     quit(1)
 
-  let device = deviceResult.get
+  var device = deviceResult.get
   echo "Device: ", device.info.name
   echo ""
 
@@ -268,5 +284,6 @@ when isMainModule:
   else:
     echo "Buffer creation error: ", bufferResult.error
 
+  device.release()
   echo ""
-  echo "✅ Metal buffer test complete"
+  echo "Metal buffer test complete"

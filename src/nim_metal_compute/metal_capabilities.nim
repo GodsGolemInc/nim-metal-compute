@@ -1,7 +1,7 @@
 ## Metal Device Capabilities Detection
 ## Comprehensive GPU feature detection for Metal
 ##
-## v0.0.3: Device capability queries
+## v0.0.4: Device capability queries via C wrapper
 ##
 ## Features:
 ##   - GPU family detection (Apple, Mac, Common)
@@ -12,10 +12,7 @@
 import std/[strformat, strutils, tables]
 import errors
 import metal_device
-
-when defined(macosx):
-  {.passL: "-framework Metal".}
-  {.passL: "-framework Foundation".}
+import metal_wrapper
 
 type
   # GPU family for capability detection
@@ -70,31 +67,50 @@ type
     memory*: MemoryCapabilities
     featureSupport*: Table[string, bool]
 
-# ========== C/Objective-C bindings ==========
-# Note: v0.0.3 uses stub implementations due to objc_msgSend issues
-
-when defined(macosx):
-  # Stub versions for v0.0.3
-  proc supportsFamily(device: MTLDeviceRef, family: int): bool =
-    ## Stub - always returns false for v0.0.3
-    false
-
-  proc supportsFeatureSet(device: MTLDeviceRef, featureSet: int): bool =
-    ## Stub - always returns false for v0.0.3
-    false
-
 # ========== GPU Family Detection ==========
 
 proc detectGPUFamily*(device: MetalDevice): MTLGPUFamily =
   ## Detect the highest supported GPU family
-  ## Note: v0.0.3 returns assumed Apple7+ for Apple Silicon Macs
   when defined(macosx):
-    if not device.valid:
+    if not device.valid or device.handle.pointer == nil:
       return gfUnknown
 
-    # v0.0.3: Stub - assume Apple7 (M1+) for Apple Silicon
-    # Actual detection will be implemented in v0.0.4
-    result = gfApple7
+    # Check GPU families from newest to oldest
+    # Apple GPU families
+    if nmc_device_supports_family(device.handle.pointer, 1009) != 0:
+      return gfApple9
+    if nmc_device_supports_family(device.handle.pointer, 1008) != 0:
+      return gfApple8
+    if nmc_device_supports_family(device.handle.pointer, 1007) != 0:
+      return gfApple7
+    if nmc_device_supports_family(device.handle.pointer, 1006) != 0:
+      return gfApple6
+    if nmc_device_supports_family(device.handle.pointer, 1005) != 0:
+      return gfApple5
+    if nmc_device_supports_family(device.handle.pointer, 1004) != 0:
+      return gfApple4
+    if nmc_device_supports_family(device.handle.pointer, 1003) != 0:
+      return gfApple3
+    if nmc_device_supports_family(device.handle.pointer, 1002) != 0:
+      return gfApple2
+    if nmc_device_supports_family(device.handle.pointer, 1001) != 0:
+      return gfApple1
+
+    # Mac GPU families
+    if nmc_device_supports_family(device.handle.pointer, 2002) != 0:
+      return gfMac2
+    if nmc_device_supports_family(device.handle.pointer, 2001) != 0:
+      return gfMac1
+
+    # Common GPU families
+    if nmc_device_supports_family(device.handle.pointer, 3003) != 0:
+      return gfCommon3
+    if nmc_device_supports_family(device.handle.pointer, 3002) != 0:
+      return gfCommon2
+    if nmc_device_supports_family(device.handle.pointer, 3001) != 0:
+      return gfCommon1
+
+    return gfUnknown
   else:
     result = gfUnknown
 
