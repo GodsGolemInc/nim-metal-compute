@@ -10,7 +10,7 @@
 ##   - 共有重みフォーマット (.nmw)
 ##
 ## 使用例:
-##   import nim_metal_compute
+##   import metal_compute
 ##
 ##   # ネットワーク定義
 ##   var spec = newNetwork("MyClassifier", 64)
@@ -27,16 +27,16 @@
 ##   # Metal シェーダーとNim CPUコードを生成
 ##   spec.generate(CodeGenOptions(outputDir: "generated"))
 
-import nim_metal_compute/errors
-import nim_metal_compute/network_spec
-import nim_metal_compute/weights
-import nim_metal_compute/codegen
-import nim_metal_compute/unified_api
-import nim_metal_compute/simd_inference
-import nim_metal_compute/metal_device
-import nim_metal_compute/metal_buffer
-import nim_metal_compute/metal_command
-import nim_metal_compute/metal_capabilities
+import metal_compute/errors
+import metal_compute/network_spec
+import metal_compute/weights
+import metal_compute/codegen
+import metal_compute/unified_api
+import metal_compute/simd_inference
+import metal_compute/metal_device
+import metal_compute/metal_buffer
+import metal_compute/metal_command
+import metal_compute/metal_capabilities
 
 # エラーハンドリング (v0.0.2+)
 export errors.NMCErrorKind
@@ -138,7 +138,7 @@ export simd_inference.inferBatchFast
 export simd_inference.inferBatch4
 
 # 究極最適化推論（400万+ samples/sec シングルコア）
-import nim_metal_compute/extreme_inference
+import metal_compute/extreme_inference
 export extreme_inference.ExtremeEngine
 export extreme_inference.InputSize
 export extreme_inference.HiddenSize
@@ -149,7 +149,7 @@ export extreme_inference.inferExtreme
 export extreme_inference.inferExtremeWithConf
 
 # 並列推論エンジン（1960万+ samples/sec マルチコア）
-import nim_metal_compute/parallel_inference
+import metal_compute/parallel_inference
 export parallel_inference.MaxThreads
 export parallel_inference.ParallelInferenceEngine
 export parallel_inference.BatchInferenceResult
@@ -226,7 +226,7 @@ when isMainModule:
   echo "Metal Compute Shader bindings for Nim"
   echo ""
   echo "Usage:"
-  echo "  import nim_metal_compute"
+  echo "  import metal_compute"
   echo ""
   echo "  # Define network"
   echo "  var spec = newNetwork(\"MyNet\", 64)"

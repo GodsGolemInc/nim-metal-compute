@@ -2,16 +2,16 @@
 ## 全機能の動作確認 - 100% Coverage
 
 import std/[unittest, tempfiles, os, strformat, strutils, tables]
-import ../src/nim_metal_compute
-import ../src/nim_metal_compute/simd_inference
-import ../src/nim_metal_compute/ultra_fast_inference as ultra
-import ../src/nim_metal_compute/extreme_inference as extreme
-import ../src/nim_metal_compute/parallel_inference
-import ../src/nim_metal_compute/actor_inference
-import ../src/nim_metal_compute/metal_device
-import ../src/nim_metal_compute/metal_buffer
-import ../src/nim_metal_compute/metal_command
-import ../src/nim_metal_compute/metal_capabilities
+import ../src/metal_compute
+import ../src/metal_compute/simd_inference
+import ../src/metal_compute/ultra_fast_inference as ultra
+import ../src/metal_compute/extreme_inference as extreme
+import ../src/metal_compute/parallel_inference
+import ../src/metal_compute/actor_inference
+import ../src/metal_compute/metal_device
+import ../src/metal_compute/metal_buffer
+import ../src/metal_compute/metal_command
+import ../src/metal_compute/metal_capabilities
 
 suite "NetworkSpec DSL":
   test "create empty network":
